@@ -240,11 +240,6 @@ extern NSString *const NSURLIsExcludedFromBackupKey __attribute__((weak_import))
 
 - (NSString *)normalizedPathForFile:(NSString *)fileOrPath
 {
-    return [self normalizedPathForFile:fileOrPath ofType:@"png"];
-}
-
-- (NSString *)normalizedPathForFile:(NSString *)fileOrPath ofType:(NSString *)extension
-{
     @synchronized ([NSFileManager class])
     {
         //set up cache
@@ -254,12 +249,7 @@ extern NSString *const NSURLIsExcludedFromBackupKey __attribute__((weak_import))
             cache = [[NSCache alloc] init];
         }
         
-        //normalize extension
         NSString *path = fileOrPath;
-        if (![[path SP_pathExtension] length] && [extension length])
-        {
-            path = [path SP_stringByAppendingPathExtension:extension];
-        }
         
         //convert to absolute path
         if (![path isAbsolutePath])
@@ -337,50 +327,33 @@ extern NSString *const NSURLIsExcludedFromBackupKey __attribute__((weak_import))
                 
                 break;
             }
-            case UIUserInterfaceIdiomDesktop:
-            {
-                //add HiDPI tiff extension
-                if ([@[@"", @"png", @"jpg", @"jpeg"] containsObject:[extension lowercaseString]])
-                {
-                    for (NSString *path in [paths objectEnumerator])
-                    {
-                        paths = [paths arrayByAddingObject:[path stringByReplacingPathExtensionWithExtension:@"tiff"]];
-                    }
-                }
-                
-                //add HD suffix
-                for (NSString *path in [paths objectEnumerator])
-                {
-                    paths = [paths arrayByAddingObject:[path stringByAppendingHDSuffix]];
-                }
-                
-                //check for Retina
-                if (SP_IS_RETINA())
-                {
-                    for (NSString *path in [paths objectEnumerator])
-                    {
-                        paths = [paths arrayByAddingObject:[path stringByAppendingRetinaSuffix]];
-                    }
-                }
-                
-                //add Mac suffixes
-                for (NSString *path in [paths objectEnumerator])
-                {
-                    paths = [paths arrayByAddingObject:[path stringByAppendingPathSuffix:SPDesktopSuffix]];
-                }
-                
-                break;
-            }
         }
         
         //try all paths
         NSString *_path = nil;
+        BOOL hasExtention = [[path SP_pathExtension] length] > 0;
         for (NSString *path in [paths reverseObjectEnumerator])
         {
-            if ([[NSFileManager defaultManager] fileExistsAtPath:path])
-            {
-                _path = path;
-                break;
+            if(hasExtention) {
+                if ([[NSFileManager defaultManager] fileExistsAtPath:path])
+                {
+                    _path = path;
+                    break;
+                }
+            } else {
+                for (NSString *extension in @[@"png", @"jpg"]) {
+                    NSString *pathWithExtension = [path SP_stringByAppendingPathExtension:extension];
+                    
+                    if ([[NSFileManager defaultManager] fileExistsAtPath:pathWithExtension])
+                    {
+                        _path = pathWithExtension;
+                        break;
+                    }
+                }
+                
+                if(_path) {
+                    break;
+                }
             }
         }
         
@@ -797,6 +770,10 @@ NSCache *SP_imageCache(void)
     else if ([path hasRetina4Suffix] && ![name hasRetina4Suffix])
     {
         name = [name stringByAppendingRetina4Suffix];
+    }
+    
+    if ([path hasPathExtension] && ![name hasPathExtension]) {
+        name = [name SP_stringByAppendingPathExtension:[path SP_pathExtension]];
     }
     return [self SP_imageNamed:name];
 }
