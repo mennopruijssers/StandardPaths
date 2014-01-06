@@ -86,7 +86,6 @@ static NSString *const SPRetina4Suffix = @"-568h";
 - (NSString *)pathForResource:(NSString *)file;
 
 - (NSString *)normalizedPathForFile:(NSString *)fileOrPath;
-- (NSString *)normalizedPathForFile:(NSString *)fileOrPath ofType:(NSString *)extension;
 
 @end
 
